@@ -1138,6 +1138,8 @@ public:
     bool Windowed = true;
     /// swap interval (0 => no vsync, default is 1)
     int SwapInterval = 1;
+    /// Monitor number for full screen on secondary monitor, 0=primaryMonitor, GLFW only
+    int MonitorNumber = 0;
     /// window title
     String Title = "Oryol";
     /// enable to render full-res on HighDPI displays (not supported on all platforms)

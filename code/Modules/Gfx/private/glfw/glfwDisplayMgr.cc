@@ -186,7 +186,21 @@ glfwDisplayMgr::createMainWindow(const GfxSetup& setup) {
     // windowed or fullscreen mode?
     GLFWmonitor* glfwMonitor = nullptr;
     if (!setup.Windowed) {
-        glfwMonitor = glfwGetPrimaryMonitor();
+        // external monitor
+        if (setup.MonitorNumber != 0) {
+            int count = 0;
+            GLFWmonitor** monitors = glfwGetMonitors(&count);
+            if (setup.MonitorNumber < count) {
+                glfwMonitor = monitors[setup.MonitorNumber];
+            } else {
+                #if ORYOL_DEBUG
+                o_warn("glfwDisplayMgr: requested monitor is not available\n");
+                #endif
+            }
+        }
+        if (glfwMonitor == nullptr) {
+            glfwMonitor = glfwGetPrimaryMonitor();
+        }
     }
     
     // now actually create the window
