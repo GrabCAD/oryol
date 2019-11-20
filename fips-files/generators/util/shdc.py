@@ -12,7 +12,8 @@ def getToolPath() :
     elif platform.system() == 'Darwin' :
         path += '/../../../tools/osx/'
     elif platform.system() == 'Linux' :
-        if os.uname()[1] == 'raspberrypi' :
+        uname = os.uname()
+        if uname[1] == 'raspberrypi' or uname[-1] == 'aarch64':
             path += '/../../../tools/raspi/'
         else :
             path +=  '/../../../tools/linux/'
@@ -46,3 +47,4 @@ def compile(input, base_path, slangs):
         tool = getToolPath()
         cmd = [tool, '-spirv', src_path, '-o', dst_path, '-lang', slang]
         run(cmd)
+

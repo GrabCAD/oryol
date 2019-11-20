@@ -20,7 +20,8 @@ def getToolPath() :
     elif platform.system() == 'Darwin' :
         path += '/../../../tools/osx/'
     elif platform.system() == 'Linux' :
-        if os.uname()[1] == 'raspberrypi' :
+        uname = os.uname()
+        if uname[1] == 'raspberrypi' or uname[-1] == 'aarch64':
             path += '/../../../tools/raspi/'
         else :
             path +=  '/../../../tools/linux/'
