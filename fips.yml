@@ -13,8 +13,8 @@ imports:
         git: https://github.com/fips-libs/fips-zlib.git
     fips-glfw:
         git: https://github.com/fips-libs/fips-glfw.git
-    fips-libcurl:
-        git: https://github.com/floooh/fips-libcurl.git
+        #    fips-libcurl:
+        #git: https://github.com/floooh/fips-libcurl.git
     fips-remotery:
         git: https://github.com/fips-libs/fips-remotery.git
     fips-vld:
@@ -29,7 +29,7 @@ exports:
         Core :          code/Modules/Core
         IO :            code/Modules/IO
         LocalFS :       code/Modules/LocalFS
-        HttpFS :        code/Modules/HttpFS
+        #HttpFS :        code/Modules/HttpFS
         Gfx :           code/Modules/Gfx
         Resource :      code/Modules/Resource
         Assets :        code/Modules/Assets
