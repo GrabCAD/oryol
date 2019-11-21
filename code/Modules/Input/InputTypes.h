@@ -3,7 +3,7 @@
 #include "Core/Containers/StaticArray.h"
 #include "Core/Containers/Map.h"
 #include "Core/String/StringAtom.h"
-#include "glm/vec2.hpp"
+#include "glm/glm.hpp"
 #include <functional>
 
 namespace Oryol {
