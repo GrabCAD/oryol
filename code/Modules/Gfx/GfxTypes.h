@@ -1168,6 +1168,11 @@ public:
     DisplayAttrs GetDisplayAttrs() const;
     /// default constructor
     GfxSetup();
+    /// initial window X position.
+    int WindowPosX = -1;
+    /// initial window Y position.q
+    /// When WindowPosX==-1 && WindowPosY==-1, use system default
+    int WindowPosY = -1;
 };
 
 //------------------------------------------------------------------------------
