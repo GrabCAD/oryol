@@ -1173,6 +1173,8 @@ public:
     /// initial window Y position.q
     /// When WindowPosX==-1 && WindowPosY==-1, use system default
     int WindowPosY = -1;
+    /// append the render type " (GL)" to window title when true
+    bool appendRendererToTitle = true;
 };
 
 //------------------------------------------------------------------------------

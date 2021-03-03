@@ -205,7 +205,9 @@ glfwDisplayMgr::createMainWindow(const GfxSetup& setup) {
     
     // now actually create the window
     StringBuilder strBuilder(setup.Title);
-    strBuilder.Append(" (GL)");
+    if (setup.appendRendererToTitle) {
+        strBuilder.Append(" (GL)");
+    }
     glfwDisplayMgr::glfwWindow = glfwCreateWindow(setup.Width, setup.Height, strBuilder.AsCStr(), glfwMonitor, 0);
     o_assert(nullptr != glfwDisplayMgr::glfwWindow);
     if (setup.WindowPosX != -1 && setup.WindowPosY != -1) {
