@@ -150,6 +150,10 @@ glfwDisplayMgr::glwfFramebufferSizeChanged(GLFWwindow* win, int width, int heigh
         glfwGetWindowSize(glfwWindow, &winWidth, &winHeight);
         self->displayAttrs.WindowWidth = winWidth;
         self->displayAttrs.WindowHeight = winHeight;
+        int posX = 0, posY = 0;
+        glfwGetWindowPos(win, &posX, &posY);
+        self->displayAttrs.WindowPosX = posX;
+        self->displayAttrs.WindowPosY = posY;
     }
 }
 
