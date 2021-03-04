@@ -45,6 +45,8 @@ public:
     static void glfwErrorCallback(int error, const char* desc);
     /// framebuffer size changed callback for GLFW
     static void glwfFramebufferSizeChanged(GLFWwindow* win, int width, int height);
+    /// update display attributes when window position changed for GLFW
+    static void glfwSetWindowPosChanged(GLFWwindow* win, int posX, int posY);
     /// create the main window
     void createMainWindow(const GfxSetup& setup);
     /// destroy the main window

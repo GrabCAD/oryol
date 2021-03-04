@@ -85,6 +85,7 @@ glfwDisplayMgr::SetupDisplay(const GfxSetup& setup, const gfxPointers& ptrs) {
     
     // set framebuffer size changed callback
     glfwSetFramebufferSizeCallback(glfwWindow, glwfFramebufferSizeChanged);
+    glfwSetWindowPosCallback(glfwWindow, glfwSetWindowPosChanged);
 }
 
 //------------------------------------------------------------------------------
@@ -155,6 +156,15 @@ glfwDisplayMgr::glwfFramebufferSizeChanged(GLFWwindow* win, int width, int heigh
         self->displayAttrs.WindowPosX = posX;
         self->displayAttrs.WindowPosY = posY;
     }
+}
+
+//------------------------------------------------------------------------------
+void
+glfwDisplayMgr::glfwSetWindowPosChanged(GLFWwindow* win, int posX, int posY) {
+
+    // update display attributes
+    self->displayAttrs.WindowPosX = posX;
+    self->displayAttrs.WindowPosY = posY;
 }
 
 //------------------------------------------------------------------------------
