@@ -13,9 +13,9 @@ class Line :
         self.lineNumber = lineNumber
 
 #-------------------------------------------------------------------------------
-def getToolPath() :
+def getToolPath():
     path = os.path.dirname(os.path.abspath(__file__))
-    if platform.system() == 'Windows' :
+    if platform.system() == 'Windows':
         path += '/../../../tools/win32/'
     elif platform.system() == 'Darwin' :
         path += '/../../../tools/osx/'
@@ -25,9 +25,9 @@ def getToolPath() :
             path += '/../../../tools/raspi/'
         else :
             path +=  '/../../../tools/linux/'
-    else :
-        error("Unknown host system {}".format(platform.system()))
-    return path + 'glslangValidator'
+    else:
+        error(f"Unknown host system {platform.system()}")
+    return f'{path}glslangValidator'
 
 #-------------------------------------------------------------------------------
 def writeFile(f, lines) :
@@ -86,7 +86,7 @@ def parseOutput(output, lines) :
         sys.exit(10) 
 
 #-------------------------------------------------------------------------------
-def compile(lines, type, base_path, slang, args) :
+def compile(lines, type, base_path, slang, args):
     # compile GLSL source file to SPIR-V
     ext = {
         'vs': 'vert',
@@ -95,13 +95,18 @@ def compile(lines, type, base_path, slang, args) :
     # GLSL can have multiple versions, force to generic 'glsl'
     if 'glsl' in slang:
         slang = 'glsl'
-    src_path = '{}.{}.{}'.format(base_path, slang, ext[type])
-    dst_path = '{}.{}.spv'.format(base_path, slang)
-    tgt_lines = []
-    tgt_lines.append(Line('#version 330'))
-    tgt_lines.append(Line('#define ORYOL_GLSL ({})'.format('1' if slang=='glsl' else '0')))
-    tgt_lines.append(Line('#define ORYOL_MSL ({})'.format('1' if slang=='metal' else '0')))
-    tgt_lines.append(Line('#define ORYOL_HLSL ({})'.format('1' if slang=='hlsl' else '0')))
+    src_path = f'{base_path}.{slang}.{ext[type]}'
+    dst_path = f'{base_path}.{slang}.spv'
+    tgt_lines = [Line('#version 330')]
+    tgt_lines.append(
+        Line(f"#define ORYOL_GLSL ({'1' if slang == 'glsl' else '0'})")
+    )
+    tgt_lines.append(
+        Line(f"#define ORYOL_MSL ({'1' if slang == 'metal' else '0'})")
+    )
+    tgt_lines.append(
+        Line(f"#define ORYOL_HLSL ({'1' if slang == 'hlsl' else '0'})")
+    )
     tgt_lines.extend(lines)
     with open(src_path, 'w') as f:
         writeFile(f, tgt_lines)

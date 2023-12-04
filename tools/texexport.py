@@ -2,23 +2,24 @@
 '''
 Oryol texture export functions
 '''
+
 import sys
 import os
 import platform
 import subprocess
 import tempfile
 
-ProjectDirectory = os.path.dirname(os.path.abspath(__file__)) + '/..'
-TexSrcDirectory = ProjectDirectory + '/data'
-TexDstDirectory = ProjectDirectory + '/build/webpage'
+ProjectDirectory = f'{os.path.dirname(os.path.abspath(__file__))}/..'
+TexSrcDirectory = f'{ProjectDirectory}/data'
+TexDstDirectory = f'{ProjectDirectory}/build/webpage'
 
 # NOTE: PVRTexTools supports a lot more formats!
 PVRFormats = ['PVRTC1_2', 'PVRTC1_4', 'PVRTC1_2_RGB', 'PVRTC1_4_RGB', 'PVRTC2_2', 'PVRTC2_4']
 ETCFormats = ['ETC1', 'ETC2']
 
 #-------------------------------------------------------------------------------
-def error(msg) :
-    print("ERROR: {}".format(msg))
+def error(msg):
+    print(f"ERROR: {msg}")
     sys.exit(10)
 
 #-------------------------------------------------------------------------------
@@ -34,16 +35,16 @@ def configure(projDir, texSrcDir, texDstDir) :
     TexDstDirectory = texDstDir
 
 #-------------------------------------------------------------------------------
-def getToolsBinPath() :
+def getToolsBinPath():
     path = os.path.dirname(os.path.abspath(__file__))
-    if platform.system() == 'Windows' :
+    if platform.system() == 'Windows':
         path += '/win32/'
     elif platform.system() == 'Darwin' :
         path += '/osx/'
     elif platform.system() == 'Linux' :
         path +=  '/linux/'
-    else :
-        error("Unknown host system {}".format(platform.system()))
+    else:
+        error(f"Unknown host system {platform.system()}")
     return path;
 
 #-------------------------------------------------------------------------------
@@ -52,26 +53,24 @@ def ensureDstDirectory() :
         os.makedirs(TexDstDirectory)
 
 #-------------------------------------------------------------------------------
-def needsExport(srcPath, dstPath) :
+def needsExport(srcPath, dstPath):
     if not os.path.isfile(dstPath) :
         return True
-    if os.stat(srcPath).st_mtime >= os.stat(dstPath).st_mtime :
-        return True
-    return False
+    return os.stat(srcPath).st_mtime >= os.stat(dstPath).st_mtime
 
 #-------------------------------------------------------------------------------
-def toDDS(srcFilename, dstFilename, linearGamma, fmt, rgbFmt=None) :
+def toDDS(srcFilename, dstFilename, linearGamma, fmt, rgbFmt=None):
     '''
     Convert a file to DDS format
     '''
     ensureDstDirectory()
-    ddsTool = getToolsBinPath() + 'nvcompress'
-    srcPath = TexSrcDirectory + '/' + srcFilename
-    dstPath = TexDstDirectory + '/' + dstFilename
-    print('=== toDDS: {} => {}:'.format(srcPath, dstPath))
+    ddsTool = f'{getToolsBinPath()}nvcompress'
+    srcPath = f'{TexSrcDirectory}/{srcFilename}'
+    dstPath = f'{TexDstDirectory}/{dstFilename}'
+    print(f'=== toDDS: {srcPath} => {dstPath}:')
     if not needsExport(srcPath, dstPath) :
         return
-    cmdLine = [ddsTool, '-'+fmt]
+    cmdLine = [ddsTool, f'-{fmt}']
     if rgbFmt != None :
         cmdLine.append('-rgbfmt')
         cmdLine.append(rgbFmt)
@@ -82,23 +81,25 @@ def toDDS(srcFilename, dstFilename, linearGamma, fmt, rgbFmt=None) :
     subprocess.call(args=cmdLine)
 
 #-------------------------------------------------------------------------------
-def toCubeDDS(srcDir, srcExt, dstFilename, linearGamma, fmt, rgbFmt=None) :
+def toCubeDDS(srcDir, srcExt, dstFilename, linearGamma, fmt, rgbFmt=None):
     '''
     Generate a cube map and convert to dds.
     '''
     ensureDstDirectory()
-    nvassemble = getToolsBinPath() + 'nvassemble'
-    ddsTool = getToolsBinPath() + 'nvcompress'
+    nvassemble = f'{getToolsBinPath()}nvassemble'
+    ddsTool = f'{getToolsBinPath()}nvcompress'
     srcFiles = ['posx', 'negx', 'posy', 'negy', 'posz', 'negz']
-    dstPath  = TexDstDirectory + '/' + dstFilename
+    dstPath = f'{TexDstDirectory}/{dstFilename}'
 
-    print('=== toCubeDDS: {}/{}/[posx,negx,posy,negy,posz,negz].{} => {}'.format(TexSrcDirectory, srcDir, srcExt, dstPath))
+    print(
+        f'=== toCubeDDS: {TexSrcDirectory}/{srcDir}/[posx,negx,posy,negy,posz,negz].{srcExt} => {dstPath}'
+    )
 
     # call nvassemble to generate an uncompressed cube map...
     cmdLine = [nvassemble, '-cube']
     dirty = False
-    for src in srcFiles :
-        srcPath = TexSrcDirectory + '/' + srcDir + '/' + src + '.' + srcExt
+    for src in srcFiles:
+        srcPath = f'{TexSrcDirectory}/{srcDir}/{src}.{srcExt}'
         dirty |= needsExport(srcPath, dstPath)
         cmdLine.append(srcPath)
     if not dirty :
@@ -108,89 +109,84 @@ def toCubeDDS(srcDir, srcExt, dstFilename, linearGamma, fmt, rgbFmt=None) :
     subprocess.call(args=cmdLine)
 
     # ...and compress/convert to the desired format
-    cmdLine = [ddsTool, '-'+fmt]
+    cmdLine = [ddsTool, f'-{fmt}']
     if rgbFmt != None :
         cmdLine.append('-rgbfmt')
         cmdLine.append(rgbFmt)
     if linearGamma :
-        cmdLine.append('-tolineargamma')        
+        cmdLine.append('-tolineargamma')
     cmdLine.append(dstPath)
     cmdLine.append(dstPath)
     subprocess.call(args=cmdLine)
 
 #-------------------------------------------------------------------------------
-def toPVR(srcFilename, dstFilename, format) :
+def toPVR(srcFilename, dstFilename, format):
     '''
     Convert a file to PVR format
     '''
-    if format not in PVRFormats :
-        error('invalid PVR texture format {}!'.format(format))
+    if format not in PVRFormats:
+        error(f'invalid PVR texture format {format}!')
 
     ensureDstDirectory()
-    pvrTool = getToolsBinPath() + 'PVRTexToolCLI'
-    srcPath = TexSrcDirectory + '/' + srcFilename
-    dstPath = TexDstDirectory + '/' + dstFilename
-    print('=== toPVR: {} => {}:'.format(srcPath, dstPath))
+    pvrTool = f'{getToolsBinPath()}PVRTexToolCLI'
+    srcPath = f'{TexSrcDirectory}/{srcFilename}'
+    dstPath = f'{TexDstDirectory}/{dstFilename}'
+    print(f'=== toPVR: {srcPath} => {dstPath}:')
     if not needsExport(srcPath, dstPath) :
         return
     cmdLine = [pvrTool, '-i', srcPath, '-o', dstPath, '-square', '+', '-pot', '+', '-m', '-mfilter', 'cubic', '-f', format ]
     subprocess.call(args=cmdLine)
 
 #-------------------------------------------------------------------------------
-def toCubePVR(srcDir, srcExt, dstFilename, format) :
+def toCubePVR(srcDir, srcExt, dstFilename, format):
     '''
     Generate a cube map and convert to PVR
     '''
-    if format not in PVRFormats :
-        error('invalid PVR texture format {}!'.format(format))
+    if format not in PVRFormats:
+        error(f'invalid PVR texture format {format}!')
 
     ensureDstDirectory()
-    pvrTool = getToolsBinPath() + 'PVRTexToolCLI'
+    pvrTool = f'{getToolsBinPath()}PVRTexToolCLI'
     srcFiles = ['posx', 'negx', 'posy', 'negy', 'posz', 'negz']
-    dstPath  = TexDstDirectory + '/' + dstFilename
+    dstPath = f'{TexDstDirectory}/{dstFilename}'
 
-    print('=== toCubePVR: {}/{}/[posx,negx,posy,negy,posz,negz].{} => {}'.format(TexSrcDirectory, srcDir, srcExt, dstPath))
+    print(
+        f'=== toCubePVR: {TexSrcDirectory}/{srcDir}/[posx,negx,posy,negy,posz,negz].{srcExt} => {dstPath}'
+    )
 
     cmdLine = [pvrTool, '-i']
     inputFiles = ''
     dirty = False
-    for src in srcFiles :
-        srcPath = TexSrcDirectory + '/' + srcDir + '/' + src + '.' + srcExt
+    for src in srcFiles:
+        srcPath = f'{TexSrcDirectory}/{srcDir}/{src}.{srcExt}'
         dirty |= needsExport(srcPath, dstPath)
-        inputFiles += srcPath + ','
+        inputFiles += f'{srcPath},'
     if not dirty:
         return
     inputFiles = inputFiles[:-1]
-    cmdLine.append(inputFiles)
-    cmdLine.append('-o')
-    cmdLine.append(dstPath)
-    cmdLine.append('-cube')
-    cmdLine.append('-m')
-    cmdLine.append('-mfilter')
-    cmdLine.append('cubic')
-    cmdLine.append('-f')
-    cmdLine.append(format)
+    cmdLine.extend((inputFiles, '-o'))
+    cmdLine.extend((dstPath, '-cube', '-m', '-mfilter', 'cubic', '-f', format))
     subprocess.call(args=cmdLine)
 
 #-------------------------------------------------------------------------------
-def toETC(srcFilename, dstFilename, format) :
+def toETC(srcFilename, dstFilename, format):
     '''
     Convert a file to ETC2 in a KTX container file.
     FIXME: alpha channel support
     '''
-    if format not in ETCFormats :
-        error('invalid ETC texture format {}!'.format(format))
+    if format not in ETCFormats:
+        error(f'invalid ETC texture format {format}!')
 
     ensureDstDirectory()
     tmpFilename, ext = os.path.splitext(dstFilename)
     tmpFilename += '.ppm'
 
-    convTool = getToolsBinPath() + 'convert'
-    etcTool  = getToolsBinPath() + 'etcpack'
-    srcPath  = TexSrcDirectory + '/' + srcFilename
-    dstPath  = TexDstDirectory + '/' + dstFilename
-    tmpPath  = tempfile.gettempdir() + '/' + tmpFilename
-    print('=== toETC2: {} => {} => {}:'.format(srcPath, tmpPath, dstPath))
+    convTool = f'{getToolsBinPath()}convert'
+    etcTool = f'{getToolsBinPath()}etcpack'
+    srcPath = f'{TexSrcDirectory}/{srcFilename}'
+    dstPath = f'{TexDstDirectory}/{dstFilename}'
+    tmpPath = f'{tempfile.gettempdir()}/{tmpFilename}'
+    print(f'=== toETC2: {srcPath} => {tmpPath} => {dstPath}:')
 
     if not needsExport(srcPath, dstPath) :
         return
@@ -253,6 +249,6 @@ def exportSampleTextures(types = ['dds','pvr','etc']) :
         toETC('lok256.jpg', 'lok_etc2.ktx', 'ETC2')
 
 #-------------------------------------------------------------------------------
-if __name__ == '__main__' :
-    print("{}".format(__file__))
+if __name__ == '__main__':
+    print(f"{__file__}")
     exportSampleTextures()

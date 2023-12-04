@@ -12,7 +12,7 @@ else:
     import winreg
 
 #-------------------------------------------------------------------------------
-def findFxc() :
+def findFxc():
     '''
     fcx.exe is located in the 'Windows Kits' SDKs, we first check the
     registry for the installation paths, and then see if we can 
@@ -26,16 +26,16 @@ def findFxc() :
     fxcSubPath = u'\\x86\\fxc.exe'
 
     # first get the preferred kit name (either 8.1 or 10, are there others?)
-    try :
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 'Software\\Microsoft\\Windows Kits\\Installed Roots') as key :
-            for kit in ['KitsRoot10', 'KitsRoot81'] :
-                try :
+    try:
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, 'Software\\Microsoft\\Windows Kits\\Installed Roots') as key:
+            for kit in ['KitsRoot10', 'KitsRoot81']:
+                try:
                     winkit_dir, _ = winreg.QueryValueEx(key, kit)
-                    fxcPath = winkit_dir + u'bin' + fxcSubPath
+                    fxcPath = f'{winkit_dir}bin{fxcSubPath}'
                     if os.path.isfile(fxcPath) :
                         return fxcPath
                     # try subdirectories
-                    for cur_dir in os.listdir(winkit_dir + u'bin'):
+                    for cur_dir in os.listdir(f'{winkit_dir}bin'):
                         fxcPath = winkit_dir + u'bin\\' + cur_dir + fxcSubPath
                         if os.path.isfile(fxcPath):
                             return fxcPath
@@ -72,7 +72,7 @@ def callFxc(cmd) :
     return out
 
 #-------------------------------------------------------------------------------
-def parseOutput(output, lines) :
+def parseOutput(output, lines):
     '''
     Parse error output lines from FXC, 
     map them to the original source code location and output
@@ -82,7 +82,7 @@ def parseOutput(output, lines) :
     hasWarning = False
     outLines = output.splitlines()
 
-    for outLine in outLines :
+    for outLine in outLines:
 
         # extract generated shader source column, line and message
         # format is 'filename(line,startcol-endcol): msg
@@ -94,10 +94,10 @@ def parseOutput(output, lines) :
             continue
         colStartIndex = lineEndIndex + 1
         colEndIndex = outLine.find('-', colStartIndex)
-        if colEndIndex == -1 :
+        if colEndIndex == -1:
             colEndIndex = outLine.find(')', colStartIndex)
-            if colEndIndex == -1 :
-                continue
+        if colEndIndex == -1 :
+            continue
         msgStartIndex = outLine.find(':', colStartIndex+1)
         if msgStartIndex == -1 :
             continue
@@ -112,7 +112,7 @@ def parseOutput(output, lines) :
             lineIndex = len(lines) - 1
         srcPath = lines[lineIndex].path
         srcLineNr = lines[lineIndex].lineNumber
-        
+
         # and output...
         util.setErrorLocation(srcPath, srcLineNr)
         if 'error' in outLine :
@@ -128,7 +128,7 @@ def parseOutput(output, lines) :
         sys.exit(10) 
 
 #-------------------------------------------------------------------------------
-def compile(lines, base_path, type, c_name, args) :
+def compile(lines, base_path, type, c_name, args):
     fxcPath = findFxc()
     if not fxcPath :
         util.fmtError("fxc.exe not found!\n")
@@ -141,8 +141,8 @@ def compile(lines, base_path, type, c_name, args) :
         'vs': 'vs_5_0',
         'fs': 'ps_5_0'
     }
-    hlsl_src_path = base_path + '.hlsl'
-    out_path = base_path + '.hlsl.h'
+    hlsl_src_path = f'{base_path}.hlsl'
+    out_path = f'{base_path}.hlsl.h'
 
     # /Gec is backward compatibility mode
     cmd = [fxcPath, '/T', profile[type], '/Fh', out_path, '/Vn', c_name, '/Gec']
@@ -151,6 +151,6 @@ def compile(lines, base_path, type, c_name, args) :
     else :
         cmd.append('/O3')
     cmd.append(hlsl_src_path)
-    
+
     output = callFxc(cmd)
     parseOutput(output, lines)

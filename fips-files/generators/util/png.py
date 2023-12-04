@@ -295,7 +295,7 @@ def check_palette(palette):
 class Error(Exception):
     prefix = 'Error'
     def __str__(self):
-        return self.prefix + ': ' + ' '.join(self.args)
+        return f'{self.prefix}: ' + ' '.join(self.args)
 
 class FormatError(Error):
     """Problem with input file format.  In other words, PNG file does
@@ -475,20 +475,15 @@ class Writer:
                 except TypeError:
                     c = (c,)
                 if len(c) != 1:
-                    raise ValueError("%s for greyscale must be 1-tuple" %
-                        which)
+                    raise ValueError(f"{which} for greyscale must be 1-tuple")
                 if not isinteger(c[0]):
-                    raise ValueError(
-                        "%s colour for greyscale must be integer" %
-                        which)
+                    raise ValueError(f"{which} colour for greyscale must be integer")
             else:
                 if not (len(c) == 3 and
                         isinteger(c[0]) and
                         isinteger(c[1]) and
                         isinteger(c[2])):
-                    raise ValueError(
-                        "%s colour must be a triple of integers" %
-                        which)
+                    raise ValueError(f"{which} colour must be a triple of integers")
             return c
 
         if size:
@@ -608,14 +603,11 @@ class Writer:
         t = array('B')
 
         for x in self.palette:
-            p.extend(x[0:3])
+            p.extend(x[:3])
             if len(x) > 3:
                 t.append(x[3])
         p = tostring(p)
-        t = tostring(t)
-        if t:
-            return p,t
-        return p,None
+        return (p, t) if (t := tostring(t)) else (p, None)
 
     def write(self, outfile, rows):
         """Write a PNG image to the output file.  `rows` should be
@@ -683,7 +675,7 @@ class Writer:
             write_chunk(outfile, 'sBIT',
                 struct.pack('%dB' % self.planes,
                             *[self.rescale[0]]*self.planes))
-        
+
         # :chunk:order: Without a palette (PLTE chunk), ordering is
         # relatively relaxed.  With one, gAMA chunk must precede PLTE
         # chunk which must precede tRNS and bKGD.
@@ -751,7 +743,7 @@ class Writer:
         if self.rescale:
             oldextend = extend
             factor = \
-              float(2**self.rescale[1]-1) / float(2**self.rescale[0]-1)
+                  float(2**self.rescale[1]-1) / float(2**self.rescale[0]-1)
             def extend(sl):
                 oldextend(map(lambda x: int(round(factor*x)), sl))
 
@@ -801,10 +793,7 @@ class Writer:
                 # we use ``del`` to empty this one, rather than create a
                 # fresh one (which would be my natural FP instinct).
                 del data[:]
-        if len(data):
-            compressed = compressor.compress(tostring(data))
-        else:
-            compressed = ''
+        compressed = compressor.compress(tostring(data)) if len(data) else ''
         flushed = compressor.flush()
         if len(compressed) or len(flushed):
             # print >> sys.stderr, len(data), len(compressed), len(flushed)
@@ -916,7 +905,7 @@ class Writer:
         # Values per row
         vpr = self.width * self.planes
         stop = 0
-        for y in range(self.height):
+        for _ in range(self.height):
             start = stop
             stop = start + vpr
             yield pixels[start:stop]
@@ -948,13 +937,13 @@ class Writer:
                 else:
                     row = array(fmt)
                     # There's no easier way to set the length of an array
-                    row.extend(pixels[0:row_len])
+                    row.extend(pixels[:row_len])
                     offset = y * vpr + xstart * self.planes
                     end_offset = (y+1) * vpr
                     skip = self.planes * xstep
                     for i in range(self.planes):
                         row[i::self.planes] = \
-                            pixels[offset+i:end_offset:skip]
+                                pixels[offset+i:end_offset:skip]
                     yield row
 
 def write_chunk(outfile, tag, data=strtobytes('')):
@@ -1223,10 +1212,7 @@ def from_array(a, mode=None, info={}):
         threed = False
         testelement = row
     if 'width' not in info:
-        if threed:
-            width = len(row)
-        else:
-            width = len(row) // planes
+        width = len(row) if threed else len(row) // planes
         info['width'] = width
 
     # Not implemented yet
@@ -1247,10 +1233,7 @@ def from_array(a, mode=None, info={}):
         else:
             # If we got here without exception, we now assume that
             # the array is a numpy array.
-            if dtype.kind == 'b':
-                bitdepth = 1
-            else:
-                bitdepth = 8 * dtype.itemsize
+            bitdepth = 1 if dtype.kind == 'b' else 8 * dtype.itemsize
         info['bitdepth'] = bitdepth
 
     for thing in 'width height bitdepth greyscale alpha'.split():
@@ -1338,8 +1321,7 @@ class Reader:
           ``array`` or ``string`` with PNG data.
 
         """
-        if ((_guess is not None and len(kw) != 0) or
-            (_guess is None and len(kw) != 1)):
+        if _guess is not None and kw or (_guess is None and len(kw) != 1):
             raise TypeError("Reader() takes exactly 1 argument")
 
         # Will be the first 8 bytes, later on.  See validate_signature.
@@ -1501,10 +1483,7 @@ class Reader:
             ai = -fu
             for i in range(len(result)):
                 x = scanline[i]
-                if ai < 0:
-                    a = 0
-                else:
-                    a = result[ai]
+                a = 0 if ai < 0 else result[ai]
                 b = previous[i]
                 result[i] = (x + ((a + b) >> 1)) & 0xff
                 ai += 1
@@ -1820,11 +1799,10 @@ class Reader:
             if self.colormap:
                 if not self.plte:
                     warnings.warn("PLTE chunk is required before tRNS chunk.")
-                else:
-                    if len(data) > len(self.plte)/3:
-                        # Was warning, but promoted to Error as it
-                        # would otherwise cause pain later on.
-                        raise FormatError("tRNS chunk is too long.")
+                elif len(data) > len(self.plte)/3:
+                    # Was warning, but promoted to Error as it
+                    # would otherwise cause pain later on.
+                    raise FormatError("tRNS chunk is too long.")
             else:
                 if self.alpha:
                     raise FormatError(
@@ -1832,7 +1810,7 @@ class Reader:
                       self.color_type)
                 try:
                     self.transparent = \
-                        struct.unpack("!%dH" % self.color_planes, data)
+                            struct.unpack("!%dH" % self.color_planes, data)
                 except struct.error:
                     raise FormatError("tRNS chunk has incorrect length.")
         elif type == 'gAMA':
@@ -2164,6 +2142,7 @@ class Reader:
         maxval = 2**meta['bitdepth'] - 1
         def newarray():
             return array(typecode, [0]) * 4 * width
+
         if meta['alpha'] and meta['greyscale']:
             # LA to RGBA
             def convert():
@@ -2173,9 +2152,10 @@ class Reader:
                     # into fourth channel.
                     a = newarray()
                     for i in range(3):
-                        a[i::4] = row[0::2]
+                        a[i::4] = row[::2]
                     a[3::4] = row[1::2]
                     yield a
+
         elif meta['greyscale']:
             # L to RGBA
             def convert():
@@ -2253,19 +2233,14 @@ except:
     except:
         # Expect to get here on Python 2.2
         def array(typecode, init=()):
-            if type(init) == str:
-                return map(ord, init)
-            return list(init)
+            return map(ord, init) if type(init) == str else list(init)
 
 # Further hacks to get it limping along on Python 2.2
 try:
     enumerate
 except:
     def enumerate(seq):
-        i=0
-        for x in seq:
-            yield i,x
-            i += 1
+        yield from enumerate(seq)
 
 try:
     reversed
@@ -2273,8 +2248,7 @@ except:
     def reversed(l):
         l = list(l)
         l.reverse()
-        for x in l:
-            yield x
+        yield from l
 
 try:
     itertools
@@ -2288,8 +2262,7 @@ except:
     itertools.imap = _itertools_imap
     def _itertools_chain(*iterables):
         for it in iterables:
-            for element in it:
-                yield element
+            yield from it
     itertools.chain = _itertools_chain
 
 
@@ -2337,9 +2310,8 @@ def topngbytes(name, rows, x, y, **k):
     w = Writer(x, y, **k)
     w.write(f, rows)
     if os.environ.get('PYPNG_TEST_TMP'):
-        w = open(name, 'wb')
-        w.write(f.getvalue())
-        w.close()
+        with open(name, 'wb') as w:
+            w.write(f.getvalue())
     return f.getvalue()
 
 def testWithIO(inp, out, f):
@@ -2358,11 +2330,9 @@ def testWithIO(inp, out, f):
         sys.stdin = oldin
         sys.stdout = oldout
     if os.environ.get('PYPNG_TEST_TMP') and hasattr(out,'getvalue'):
-        name = mycallersname()
-        if name:
-            w = open(name+'.png', 'wb')
-            w.write(out.getvalue())
-            w.close()
+        if name := mycallersname():
+            with open(f'{name}.png', 'wb') as w:
+                w.write(out.getvalue())
     return x
 
 def mycallersname():
@@ -2466,16 +2436,14 @@ class Test(unittest.TestCase):
         x,y,pixels,meta = r.asRGBA8()
         # Test the pixels at row 9 columns 0 and 1.
         row9 = list(pixels)[9]
-        self.assertEqual(row9[0:8],
-                         [0xff, 0xdf, 0xff, 0xff, 0xff, 0xde, 0xff, 0xff])
+        self.assertEqual(row9[:8], [0xff, 0xdf, 0xff, 0xff, 0xff, 0xde, 0xff, 0xff])
     def testLtoRGBA(self):
         "asRGBA() on grey source."""
         # Test for Issue 60
         r = Reader(bytes=_pngsuite['basi0g08'])
         x,y,pixels,meta = r.asRGBA()
         row9 = list(list(pixels)[9])
-        self.assertEqual(row9[0:8],
-          [222, 222, 222, 255, 221, 221, 221, 255])
+        self.assertEqual(row9[:8], [222, 222, 222, 255, 221, 221, 221, 255])
     def testCtrns(self):
         "Test colour type 2 and tRNS chunk."
         # Test for Issue 25
@@ -2484,7 +2452,7 @@ class Test(unittest.TestCase):
         # I just happen to know that the first pixel is transparent.
         # In particular it should be #7f7f7f00
         row0 = list(pixels)[0]
-        self.assertEqual(tuple(row0[0:4]), (0x7f, 0x7f, 0x7f, 0x00))
+        self.assertEqual(tuple(row0[:4]), (0x7f, 0x7f, 0x7f, 0x00))
     def testAdam7read(self):
         """Adam7 interlace reading.
         Specifically, test that for images in the PngSuite that
@@ -2519,19 +2487,31 @@ class Test(unittest.TestCase):
                 continue
             it = Reader(bytes=bytes)
             x,y,pixels,meta = it.read()
-            pngi = topngbytes('adam7wn'+name+'.png', pixels,
-              x=x, y=y, bitdepth=it.bitdepth,
-              greyscale=it.greyscale, alpha=it.alpha,
-              transparent=it.transparent,
-              interlace=False)
+            pngi = topngbytes(
+                f'adam7wn{name}.png',
+                pixels,
+                x=x,
+                y=y,
+                bitdepth=it.bitdepth,
+                greyscale=it.greyscale,
+                alpha=it.alpha,
+                transparent=it.transparent,
+                interlace=False,
+            )
             x,y,ps,meta = Reader(bytes=pngi).read()
             it = Reader(bytes=bytes)
             x,y,pixels,meta = it.read()
-            pngs = topngbytes('adam7wi'+name+'.png', pixels,
-              x=x, y=y, bitdepth=it.bitdepth,
-              greyscale=it.greyscale, alpha=it.alpha,
-              transparent=it.transparent,
-              interlace=True)
+            pngs = topngbytes(
+                f'adam7wi{name}.png',
+                pixels,
+                x=x,
+                y=y,
+                bitdepth=it.bitdepth,
+                greyscale=it.greyscale,
+                alpha=it.alpha,
+                transparent=it.transparent,
+                interlace=True,
+            )
             x,y,pi,meta = Reader(bytes=pngs).read()
             self.assertEqual(map(list, ps), map(list, pi))
     def testPGMin(self):
@@ -2719,9 +2699,8 @@ class Test(unittest.TestCase):
         i = itertools.islice(itertools.count(10), 20)
         i = itertools.imap(lambda x: [x, x, x], i)
         img = from_array(i, 'RGB;5', dict(height=20))
-        f = open('testiter.png', 'wb')
-        img.save(f)
-        f.close()
+        with open('testiter.png', 'wb') as f:
+            img.save(f)
 
     # numpy dependent tests.  These are skipped (with a message to
     # sys.stderr) if numpy cannot be imported.
@@ -3308,27 +3287,49 @@ def test_suite(options, args):
     # They're all really tiny, so PEP 8 rules are suspended.
 
     def test_gradient_horizontal_lr(x, y): return x
+
     def test_gradient_horizontal_rl(x, y): return 1-x
+
     def test_gradient_vertical_tb(x, y): return y
+
     def test_gradient_vertical_bt(x, y): return 1-y
+
     def test_radial_tl(x, y): return max(1-math.sqrt(x*x+y*y), 0.0)
+
     def test_radial_center(x, y): return test_radial_tl(x-0.5, y-0.5)
+
     def test_radial_tr(x, y): return test_radial_tl(1-x, y)
+
     def test_radial_bl(x, y): return test_radial_tl(x, 1-y)
+
     def test_radial_br(x, y): return test_radial_tl(1-x, 1-y)
+
     def test_stripe(x, n): return float(int(x*n) & 1)
+
     def test_stripe_h_2(x, y): return test_stripe(x, 2)
+
     def test_stripe_h_4(x, y): return test_stripe(x, 4)
+
     def test_stripe_h_10(x, y): return test_stripe(x, 10)
+
     def test_stripe_v_2(x, y): return test_stripe(y, 2)
+
     def test_stripe_v_4(x, y): return test_stripe(y, 4)
+
     def test_stripe_v_10(x, y): return test_stripe(y, 10)
+
     def test_stripe_lr_10(x, y): return test_stripe(x+y, 10)
+
     def test_stripe_rl_10(x, y): return test_stripe(1+x-y, 10)
+
     def test_checker(x, y, n): return float((int(x*n) & 1) ^ (int(y*n) & 1))
+
     def test_checker_8(x, y): return test_checker(x, y, 8)
+
     def test_checker_15(x, y): return test_checker(x, y, 15)
+
     def test_zero(x, y): return 0
+
     def test_one(x, y): return 1
 
     test_patterns = {
@@ -3361,10 +3362,7 @@ def test_suite(options, args):
         """
 
         maxval = 2**bitdepth-1
-        if maxval > 255:
-            a = array('H')
-        else:
-            a = array('B')
+        a = array('H') if maxval > 255 else array('B')
         fw = float(width)
         fh = float(height)
         pfun = test_patterns[pattern]
@@ -3401,7 +3399,9 @@ def test_suite(options, args):
         """
 
         if name not in _pngsuite:
-            raise NotImplementedError("cannot find PngSuite file %s (use -L for a list)" % name)
+            raise NotImplementedError(
+                f"cannot find PngSuite file {name} (use -L for a list)"
+            )
         r = Reader(bytes=_pngsuite[name])
         w,h,pixels,meta = r.asDirect()
         # LAn for n < 8 is a special case for which we need to rescale
@@ -3527,7 +3527,7 @@ def read_pnm_header(infile, supported=('P5','P6')):
     # is acceptable.
     type = infile.read(3).rstrip()
     if type not in supported:
-        raise NotImplementedError('file format %s not supported' % type)
+        raise NotImplementedError(f'file format {type} not supported')
     if type == strtobytes('P7'):
         # PAM header parsing is completely different.
         return read_pam_header(infile)
@@ -3559,7 +3559,7 @@ def read_pnm_header(infile, supported=('P5','P6')):
             while c not in '\n\r':
                 c = getc()
         if not c.isdigit():
-            raise Error('unexpected character %s found in header' % c)
+            raise Error(f'unexpected character {c} found in header')
         # According to the specification it is legal to have comments
         # that appear in the middle of a token.
         # This is bonkers; I've never seen it; and it's a bit awkward to
@@ -3579,7 +3579,7 @@ def read_pnm_header(infile, supported=('P5','P6')):
         while c not in '\n\r':
             c = getc()
     if not c.isspace():
-        raise Error('expected header to end with whitespace, not %s' % c)
+        raise Error(f'expected header to end with whitespace, not {c}')
 
     if type in pbm:
         # synthesize a MAXVAL
@@ -3599,23 +3599,12 @@ def write_pnm(file, width, height, pixels, meta):
     # from a PNG file.
     assert planes in (1,2,3,4)
     if planes in (1,3):
-        if 1 == planes:
-            # PGM
-            # Could generate PBM if maxval is 1, but we don't (for one
-            # thing, we'd have to convert the data, not just blat it
-            # out).
-            fmt = 'P5'
-        else:
-            # PPM
-            fmt = 'P6'
+        fmt = 'P5' if planes == 1 else 'P6'
         file.write('%s %d %d %d\n' % (fmt, width, height, maxval))
     if planes in (2,4):
         # PAM
         # See http://netpbm.sourceforge.net/doc/pam.html
-        if 2 == planes:
-            tupltype = 'GRAYSCALE_ALPHA'
-        else:
-            tupltype = 'RGB_ALPHA'
+        tupltype = 'GRAYSCALE_ALPHA' if planes == 2 else 'RGB_ALPHA'
         file.write('P7\nWIDTH %d\nHEIGHT %d\nDEPTH %d\nMAXVAL %d\n'
                    'TUPLTYPE %s\nENDHDR\n' %
                    (width, height, planes, maxval, tupltype))
@@ -3623,10 +3612,7 @@ def write_pnm(file, width, height, pixels, meta):
     vpr = planes * width
     # struct format
     fmt = '>%d' % vpr
-    if maxval > 0xff:
-        fmt = fmt + 'H'
-    else:
-        fmt = fmt + 'B'
+    fmt = f'{fmt}H' if maxval > 0xff else f'{fmt}B'
     for row in pixels:
         file.write(struct.pack(fmt, *row))
     file.flush()
@@ -3640,14 +3626,15 @@ def color_triple(color):
         return (int(color[1], 16),
                 int(color[2], 16),
                 int(color[3], 16))
-    if color.startswith('#') and len(color) == 7:
-        return (int(color[1:3], 16),
-                int(color[3:5], 16),
-                int(color[5:7], 16))
-    elif color.startswith('#') and len(color) == 13:
-        return (int(color[1:5], 16),
-                int(color[5:9], 16),
-                int(color[9:13], 16))
+    if color.startswith('#'):
+        if len(color) == 7:
+            return (int(color[1:3], 16),
+                    int(color[3:5], 16),
+                    int(color[5:7], 16))
+        elif len(color) == 13:
+            return (int(color[1:5], 16),
+                    int(color[5:9], 16),
+                    int(color[9:13], 16))
 
 
 def _main(argv):

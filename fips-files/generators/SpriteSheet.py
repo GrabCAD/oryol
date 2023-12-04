@@ -40,8 +40,8 @@ class SpriteSheet :
     def namespace(self, ns) :
         self.ns = ns
 
-    def image(self, img) :
-        self.imagePath = os.path.dirname(self.input) + '/' + img
+    def image(self, img):
+        self.imagePath = f'{os.path.dirname(self.input)}/{img}'
 
     def clampImageSize(self, w, h) :
         self.clampWidth = w
@@ -63,17 +63,17 @@ class SpriteSheet :
         sprite.char = char
         self.sprites.append(sprite)
 
-    def loadImage(self) :
+    def loadImage(self):
         pngReader = png.Reader(self.imagePath)
         img = pngReader.asRGBA8()
         self.imageWidth = img[0]
         self.imageHeight = img[1]
-        if self.clampWidth > 0 and self.clampWidth < self.imageWidth :
+        if self.clampWidth > 0 and self.clampWidth < self.imageWidth:
             self.imageWidth = self.clampWidth
-            print('Clamped image width to {}'.format(self.imageWidth))
-        if self.clampHeight > 0 and self.clampHeight < self.imageHeight :
+            print(f'Clamped image width to {self.imageWidth}')
+        if self.clampHeight > 0 and self.clampHeight < self.imageHeight:
             self.imageHeight = self.clampHeight
-            print('Clamped image height to {}'.format(self.imageHeight))
+            print(f'Clamped image height to {self.imageHeight}')
 
         self.imagePixels = img[2]
         self.imageInfo = img[3]
@@ -87,30 +87,30 @@ class SpriteSheet :
                     charMap[ascii] = sprite
         return charMap
 
-    def writeHeaderTop(self, f) :
+    def writeHeaderTop(self, f):
         f.write('#pragma once\n')
         f.write('//-----------------------------------------------------------------------------\n')
-        f.write('/*  #version:{}#\n'.format(Version))
+        f.write(f'/*  #version:{Version}#\n')
         f.write('    machine generated, do not edit!\n')
         f.write('*/\n')
         f.write('#include "Core/Types.h"\n')
-        f.write('namespace ' + self.ns + ' {\n')
+        f.write(f'namespace {self.ns}' + ' {\n')
 
     def writeHeaderBottom(self, f) :
         f.write('}\n')
         f.write('\n')
 
-    def writeSpriteSheet(self, f) :
+    def writeSpriteSheet(self, f):
         numPixels = self.imageWidth * self.imageHeight
         numBytes = numPixels * 4
         f.write('struct Sheet {\n')
         f.write('    static const int Width{' + str(self.imageWidth) + '};\n')
         f.write('    static const int Height{' + str(self.imageHeight) + '};\n')
         f.write('    static const int NumBytes{' + str(numBytes) + '};\n')
-        f.write('    static const uint32_t Pixels[{}];\n'.format(numPixels))
+        f.write(f'    static const uint32_t Pixels[{numPixels}];\n')
         f.write('    enum SpriteId {\n')
-        for sprite in self.sprites :
-            f.write('        ' + sprite.name + ',\n')
+        for sprite in self.sprites:
+            f.write(f'        {sprite.name}' + ',\n')
         f.write('\n')
         f.write('        NumSprites,\n')
         f.write('        InvalidSprite\n')
@@ -137,30 +137,29 @@ class SpriteSheet :
         f.write('    } Sprite[NumSprites];\n')
         f.write('};\n')
 
-    def genHeader(self, absHeaderPath) :
-        f = open(absHeaderPath, 'w')
-        self.writeHeaderTop(f)
-        self.writeSpriteSheet(f)
-        self.writeHeaderBottom(f)
-        f.close()
+    def genHeader(self, absHeaderPath):
+        with open(absHeaderPath, 'w') as f:
+            self.writeHeaderTop(f)
+            self.writeSpriteSheet(f)
+            self.writeHeaderBottom(f)
 
-    def writeSourceTop(self, f, absSourcePath) :
+    def writeSourceTop(self, f, absSourcePath):
         path, hdrFileAndExt = os.path.split(absSourcePath)
         hdrFile, ext = os.path.splitext(hdrFileAndExt)
 
         f.write('//-----------------------------------------------------------------------------\n')
-        f.write('// #version:{}# machine generated, do not edit!\n'.format(Version))
+        f.write(f'// #version:{Version}# machine generated, do not edit!\n')
         f.write('//-----------------------------------------------------------------------------\n')
         f.write('#include "Pre.h"\n')
-        f.write('#include "' + hdrFile + '.h"\n')
+        f.write(f'#include "{hdrFile}' + '.h"\n')
         f.write('\n')
-        f.write('namespace ' + self.ns + ' {\n')
+        f.write(f'namespace {self.ns}' + ' {\n')
 
-    def writeImageData(self, f) :
+    def writeImageData(self, f):
         width = self.imageWidth
         height = self.imageHeight
         numPixels = width * height
-        f.write('const uint32_t Sheet::Pixels[' + str(numPixels) + '] = {\n')
+        f.write(f'const uint32_t Sheet::Pixels[{str(numPixels)}' + '] = {\n')
         for y,row in enumerate(self.imagePixels) :
             if y < self.imageHeight :
                 f.write('    ')
@@ -174,7 +173,7 @@ class SpriteSheet :
                 f.write('\n')
         f.write('};\n')
 
-    def writeSpriteData(self, f) :
+    def writeSpriteData(self, f):
         mapAnimType = {
             '':         'None',
             'none':     'None',
@@ -184,14 +183,14 @@ class SpriteSheet :
         }
 
         f.write('const Sheet::sprite Sheet::Sprite[Sheet::NumSprites] = {\n')
-        for sprite in self.sprites :
+        for sprite in self.sprites:
             name = str(sprite.name)
             x = str(sprite.x)
             y = str(sprite.y)
             w = str(sprite.w)
             h = str(sprite.h)
             frs = str(sprite.frames)
-            anm = 'Sheet::Anim::' + mapAnimType[sprite.anim]
+            anm = f'Sheet::Anim::{mapAnimType[sprite.anim]}'
             char = 0
             if sprite.char is not None :
                 char = ord(sprite.char[0])
@@ -199,28 +198,27 @@ class SpriteSheet :
             f.write('    { '+name+','+x+','+y+','+w+','+h+','+frs+','+anm+','+char+' },\n')
         f.write('};\n')
 
-    def writeSpriteCharMap(self, f) :
+    def writeSpriteCharMap(self, f):
         f.write('const Sheet::SpriteId Sheet::CharMap[256] = {\n')
         charMap = self.buildCharMap()
-        for sprite in charMap :
-            if sprite is None :
+        for sprite in charMap:
+            if sprite is None:
                 f.write('    Sheet::InvalidSprite,\n')
-            else :
-                f.write('    Sheet::' + sprite.name + ',\n')
+            else:
+                f.write(f'    Sheet::{sprite.name}' + ',\n')
         f.write('};\n')
 
     def writeSourceBottom(self, f) :
         f.write('}\n')
         f.write('\n')
 
-    def genSource(self, absSourcePath) :
-        f = open(absSourcePath, 'w')
-        self.writeSourceTop(f, absSourcePath)
-        self.writeImageData(f)
-        self.writeSpriteData(f)
-        self.writeSpriteCharMap(f)
-        self.writeSourceBottom(f)
-        f.close()
+    def genSource(self, absSourcePath):
+        with open(absSourcePath, 'w') as f:
+            self.writeSourceTop(f, absSourcePath)
+            self.writeImageData(f)
+            self.writeSpriteData(f)
+            self.writeSpriteCharMap(f)
+            self.writeSourceBottom(f)
 
     #-------------------------------------------------------------------------------
     def generate(self) :

@@ -13,12 +13,9 @@ def writeFile(f, lines) :
         f.write(str.encode(line.content + '\n'))
 
 #-------------------------------------------------------------------------------
-def run(platform, run_cmd) :
+def run(platform, run_cmd):
     # run a generic command through xcrun an capture stdout
-    if platform == 'ios':
-        sdk = 'iphoneos'
-    else:
-        sdk = 'macosx'
+    sdk = 'iphoneos' if platform == 'ios' else 'macosx'
     cmd = ['xcrun', '--sdk', sdk, '--run']
     cmd.extend(run_cmd)
     child = subprocess.Popen(cmd, stderr=subprocess.PIPE)
@@ -58,12 +55,12 @@ def link(platform, in_lib, out_bin) :
     return run(platform, cmd)
 
 #-------------------------------------------------------------------------------
-def parseOutput(output, lines) :
+def parseOutput(output, lines):
     hasError = False
     hasWarnings = False
     outLines = output.splitlines()
 
-    for outLine in outLines :
+    for outLine in outLines:
         if 'error:' in outLine or 'warning:' in outLine or 'note:' in outLine:
             tokens = outLine.split(':')
             metalSrcPath = tokens[0]
@@ -74,7 +71,7 @@ def parseOutput(output, lines) :
 
             if msgType == ' error':
                 hasError = True
-            if msgType == ' warning':
+            elif msgType == ' warning':
                 hasWarning = True
 
             # map to original location
@@ -96,36 +93,36 @@ def parseOutput(output, lines) :
         sys.exit(10) 
 
 #-------------------------------------------------------------------------------
-def writeBinHeader(in_bin, out_hdr, c_name) :
+def writeBinHeader(in_bin, out_hdr, c_name):
     '''
     Write the metallib binary data into a C header file.
     '''
     with open(in_bin, 'rb') as in_file :
         data = in_file.read()
     hexdata = binascii.hexlify(data)
-    with open(out_hdr, 'w') as out_file :
+    with open(out_hdr, 'w') as out_file:
         out_file.write('#pragma once\n')
-        out_file.write('static const unsigned char {}[] = {{\n'.format(c_name))
-        for i in range(0, len(data)) :
-            out_file.write('0x{}{},'.format(hexdata[i*2], hexdata[i*2+1]))
+        out_file.write(f'static const unsigned char {c_name}[] = {{\n')
+        for i in range(0, len(data)):
+            out_file.write(f'0x{hexdata[i * 2]}{hexdata[i * 2 + 1]},')
             if (i % 16) == 15 :
                 out_file.write('\n')
         out_file.write('\n};\n')
 
 #-------------------------------------------------------------------------------
-def compile(lines, base_path, c_name, args) :
+def compile(lines, base_path, c_name, args):
    
     platform = util.getEnv('target_platform')
-    if platform != 'ios' and platform != 'osx' :
+    if platform not in ['ios', 'osx']:
         return
 
     # filenames
-    metal_src_path = base_path + '.metal'
-    metal_dia_path = base_path + '.dia'
-    metal_air_path = base_path + '.air'
-    metal_lib_path = base_path + '.metal-ar'
-    metal_bin_path = base_path + '.metallib'
-    c_header_path  = base_path + '.metallib.h'
+    metal_src_path = f'{base_path}.metal'
+    metal_dia_path = f'{base_path}.dia'
+    metal_air_path = f'{base_path}.air'
+    metal_lib_path = f'{base_path}.metal-ar'
+    metal_bin_path = f'{base_path}.metallib'
+    c_header_path = f'{base_path}.metallib.h'
 
     # compile .metal source file
     output = cc(platform, metal_src_path, metal_dia_path, metal_air_path)

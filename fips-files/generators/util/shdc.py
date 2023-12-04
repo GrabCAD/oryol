@@ -5,9 +5,9 @@ import subprocess, platform, os, sys
 import genutil as util
 
 #-------------------------------------------------------------------------------
-def getToolPath() :
+def getToolPath():
     path = os.path.dirname(os.path.abspath(__file__))
-    if platform.system() == 'Windows' :
+    if platform.system() == 'Windows':
         path += '/../../../tools/win32/'
     elif platform.system() == 'Darwin' :
         path += '/../../../tools/osx/'
@@ -17,9 +17,9 @@ def getToolPath() :
             path += '/../../../tools/raspi/'
         else :
             path +=  '/../../../tools/linux/'
-    else :
-        error("Unknown host system {}".format(platform.system()))
-    return path + 'oryol-shdc'
+    else:
+        error(f"Unknown host system {platform.system()}")
+    return f'{path}oryol-shdc'
 
 #-------------------------------------------------------------------------------
 def run(cmd):
@@ -38,12 +38,9 @@ def run(cmd):
 def compile(input, base_path, slangs):
     util.setErrorLocation(input, 0)
     for slang in slangs:
-        if 'glsl' in slang:
-            src_slang = 'glsl'
-        else:
-            src_slang = slang
-        src_path = '{}.{}.spv'.format(base_path, src_slang)
-        dst_path = '{}.{}'.format(base_path, slang)
+        src_slang = 'glsl' if 'glsl' in slang else slang
+        src_path = f'{base_path}.{src_slang}.spv'
+        dst_path = f'{base_path}.{slang}'
         tool = getToolPath()
         cmd = [tool, '-spirv', src_path, '-o', dst_path, '-lang', slang]
         run(cmd)
